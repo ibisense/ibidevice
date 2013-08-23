@@ -1,0 +1,11 @@
+0
+T,0
+T,32,°F
+
+ts,type,value,unit,channel
+20:00:00,T,50,°C,asuxtyy
+20:33:33,RH,40,%
+
+T 30°F, RH 10%, batt 3.04V
+asuxtyy: T 30°F, RH 10%, batt 3.04V
+
