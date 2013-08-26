@@ -1,3 +1,3 @@
 #!/bin/bash
 echo -n "load "
-uptime | awk -F" " '{print $8;}' | awk -F"," '{print $1}'
+awk '{ print $1}' /proc/loadavg 
