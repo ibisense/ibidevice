@@ -23,15 +23,13 @@ ibisense.setApiKey(config.apikey);
 //Logging
 var log4js = require("log4js");
 log4js.loadAppender('file');
-//log4js.addAppender(log4js.appenders.console());
 log4js.addAppender(log4js.appenders.file(config.log_dir+'/ibideviced.log'), 'ibideviced');
 var log = log4js.getLogger("ibideviced"); 
-//var log = console;
-if(true) {
-    log.debug = sys.debug;
-} else {
-    log.debug = function(){};
-}
+log.setLevel(log4js.levels.INFO);
+
+//Debug on / off ?
+log.setLevel(log4js.levels.TRACE)
+
 
 //Here are the data collecting scripts
 var collectors_path = config.collectors_dir;
@@ -60,7 +58,7 @@ var runCollectors = function() {
     
     for (var c_idx in collectors) {       
 	var collector = collectors[c_idx];
-	log.debug(collector);
+	log.trace(collector);
 	if(collector_runnable(collector)) {
 	    execCollector(collectors_path + collector, null);
 	}
@@ -81,7 +79,7 @@ var loadChannels = function() {
                  channelSlugs[ch.abbreviation()] = ch.cuid();
              }
         }, function(code) {
-            log.error("Error on loading channel data from Ibisense, status=" + status);
+            log.error("Error on loading channel data from Ibisense, status=" + code);
         }
     );
 }
@@ -157,7 +155,7 @@ var processCollectorResult = function(path,data) {
 	var line = lines[lineno];
 	var lineItems = line.split(",");
 	var ts = new Date();
-        log.debug("Received new measurement: " + line)
+        log.trace("Received new measurement: " + line)
 	for(var i in lineItems) {
 
 	    //Is the first one a timestamp ?
@@ -178,7 +176,7 @@ var processCollectorResult = function(path,data) {
 		    if(m.length >=3) {
 			var chName = m[1];
 			var chValue = parseFloat(m[2]);
-                        log.debug("line: " + ll + ", chName: " + chName + ", chValue: " + chValue);
+                        log.trace("line: " + ll + ", chName: " + chName + ", chValue: " + chValue);
                         if (chName && !isNaN(chValue)) {
   	                    measurementReceived(ts,chName,chValue);
                         }
@@ -208,7 +206,7 @@ var execCollector = function(path, sink) {
     child.stdout.on('data', function(d) {
 	    //Collect data from STDOUT
 	    stdout_data.push(""+d);
-	    log.debug("STDOUT " + stdout_data);		
+	    log.trace("STDOUT " + stdout_data);		
 	});    
 
     child.stderr.on('data', function(d) {
@@ -226,7 +224,7 @@ var execCollector = function(path, sink) {
 	});
 
     child.on('close', function(code, signal) {
-	    log.debug(path + " exit: " + code + "/" + signal); running = false;
+	    log.trace(path + " exit: " + code + "/" + signal); running = false;
 	});
     
     //TODO: add timeout+kill
@@ -259,7 +257,7 @@ var ibiSendMeasurement = function(slug, m) {
 	    m.value = parseFloat(m.value); 
 	} else {
 	    //Only numeric data allowed currently
-	    log.debug("Non-numeric measurement: " + m.value);
+	    log.trace("Non-numeric measurement: " + m.value);
 	    return;
 	}
     }
@@ -267,7 +265,7 @@ var ibiSendMeasurement = function(slug, m) {
     var dp = new ibisense.models.DataPoint({ "date": m.abs_time,
 					     "value": m.value });
 
-    log.debug("Storing " + dp.toJsonString());
+    log.trace("Storing " + dp.toJsonString());
 
 
     var onError = function(status) {
@@ -275,7 +273,7 @@ var ibiSendMeasurement = function(slug, m) {
     };
 
     var onSuccess = function(status) {
-	log.debug("Ibisense store OK");
+	log.trace("Ibisense store OK");
     };
 
     var onErrorGen = function(dpoint) {
@@ -286,12 +284,12 @@ var ibiSendMeasurement = function(slug, m) {
 
     var onSuccessGen = function (dpoint) {
 	return function(status) {
-	    console.log("Stored: " + dpoint);
+	    log.trace("Stored: " + dpoint);
 	};
     };
 
     if(typeof slug !== 'undefined' && slug && dp.toJson().t && dp.toJson().v) {
-	log.debug("Storing " + slug + " = " + dp.toJsonString());
+	log.trace("Storing " + slug + " = " + dp.toJsonString());
 	ibisense.datapoints.add(slug, 
 				[dp], 
 				onSuccessGen(slug + "=" +dp.toJsonString()), 
