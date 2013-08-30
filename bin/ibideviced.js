@@ -8,12 +8,19 @@ global.jQuery = require('jquery');
 
 var sys = require('sys');
 var spawn = require('child_process').spawn;
+var exec = require('child_process').exec;
 var fs = require('fs');
 var ibisense = require("../lib/ibisense.api.js");
 var channelSlugs = {};
+var config_file = "../etc/ibideviced_config.json";
 
 //Configuration
 var config = JSON.parse(fs.readFileSync("../etc/ibideviced_config.json"));
+
+if (!config) {
+    console.log("No configuration file was found. Exiting.");
+    process.exit(-1);
+}
 
 var sensorid = config.sensorid;
 
@@ -237,14 +244,8 @@ var execCollector = function(path, sink) {
 };
 
 
-setInterval(
-    function() {
-	runCollectors();
-    }, 5000
-);
 
-
-//TODO: add data buffering if 
+//TODO: add data buffering if net connetion is down
 
 // Message handling routines
 var ibiSendMeasurement = function(slug, m) {
@@ -298,5 +299,78 @@ var ibiSendMeasurement = function(slug, m) {
     } else {
 	    log.warn("Slug not defined for " + m.nodename);
     }
+};
+
+var startCollectors = function() {
+    setInterval(
+		function() {
+		    runCollectors();
+		}, 5000
+		);
+};
+
+var bootstrapDelayed = function(retries){
+    setTimeout(function() { bootstrap(retries) }, 1000);
 }
+
+var bootstrap = function(retries) {
+
+    if(!retries) process.exit(-1);
+    else retries--;
+
+    if (config.apikey && config.sensorid) {
+	ibisense.setApiKey(config.apikey);
+	ibisense.sensors.get(config.sensorid, 
+			     function(sensor) {
+				 console.log("OK. Sensor was  previously registered.")
+				     startCollectors();
+			     }, function(code) {
+				 console.log("ERROR. Sensor was not registered, but ID exists. Please clear apikey and sensorid in config file and run again!")
+				     bootstrapDelayed(retries);
+			     }
+			     );
+    } else {
+	exec(config.get_serial_number_command, function (error, stdout, stderr) {
+		if (error !== null) {
+		    console.log('exec error: ' + error);
+		    process.exit(-1); //fatal
+		}
+		
+		var serial = stdout || "unknown";
+		serial = serial.replace(/^\s*/, '').replace(/\s*$/, '');
+		console.log("Registering device with serial number: " + serial + ".");
+		if (serial === "unknown") {
+		    console.log("Could not retrieve device serial number");
+		    process.exit(-1); //fatal
+		}
+		
+		ibisense.activation.activateUnregistered(serial,
+							 function(apikey, suid) {
+							     console.log("Device with serial number " + serial + " was registered in the Ibisense cloud: SUID " + suid + " API KEY: " + apikey);
+							     config.apikey   = apikey;
+							     config.sensorid = suid;
+							     fs.writeFile(config_file, JSON.stringify(config, null, 4),
+									  function (err) {
+									      if (err) {
+										  console.log("There has been an error saving your configuration data.");
+										  console.log(err.message);
+										  bootstrapDelayed(retries);
+									      }
+									      console.log("Configuration saved successfully.")
+									      startCollectors();
+									  }
+									  );
+							 }, function(code) {
+							     console.log("There was an error registering the device in Ibisense cloud. Error code : " + code);
+							     bootstrapDelayed(retries);
+							 }
+							 ); 
+	    });
+    }  
+};
+
+// MAIN - startup
+
+var bootstrapRetries = 10;
+bootstrap(bootstrapRetries);
 
