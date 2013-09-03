@@ -311,7 +311,8 @@ var startCollectors = function() {
 
 var bootstrapDelayed = function(retries){
     setTimeout(function() { bootstrap(retries) }, 1000);
-}
+};
+
 
 var bootstrap = function(retries) {
 
@@ -344,27 +345,42 @@ var bootstrap = function(retries) {
 		    process.exit(-1); //fatal
 		}
 		
-		ibisense.activation.activateUnregistered(serial,
-							 function(apikey, suid) {
-							     console.log("Device with serial number " + serial + " was registered in the Ibisense cloud: SUID " + suid + " API KEY: " + apikey);
-							     config.apikey   = apikey;
-							     config.sensorid = suid;
-							     fs.writeFile(config_file, JSON.stringify(config, null, 4),
-									  function (err) {
-									      if (err) {
-										  console.log("There has been an error saving your configuration data.");
-										  console.log(err.message);
-										  bootstrapDelayed(retries);
-									      }
-									      console.log("Configuration saved successfully.")
-									      startCollectors();
-									  }
-									  );
-							 }, function(code) {
-							     console.log("There was an error registering the device in Ibisense cloud. Error code : " + code);
-							     bootstrapDelayed(retries);
-							 }
-							 ); 
+		// By default, use MAC address of the RPi as the registration secret
+		// This is not the most secure method, but better than nothing - now
+		// you can share the cpuid to others with whom you wish to share the
+		// data and they won't be able to fake your data without knowing the MAC
+		// address;
+		var macAddress = fs.readFileSync("/sys/class/net/eth0/address").toString().trim();
+		var secret;
+		if(!config.secret) {
+		    secret = config.secret;
+		} else {
+		    secret = macAddress;
+		}
+
+		ibisense.activation.activateUnregistered({ 
+			'serial': serial, 
+			    'secret', secret},
+		    function(apikey, suid) {
+			console.log("Device with serial number " + serial + " was registered in the Ibisense cloud: SUID " + suid + " API KEY: " + apikey);
+			config.apikey   = apikey;
+			config.sensorid = suid;
+			fs.writeFile(config_file, JSON.stringify(config, null, 4),
+				     function (err) {
+					 if (err) {
+					     console.log("There has been an error saving your configuration data.");
+					     console.log(err.message);
+					     bootstrapDelayed(retries);
+					 }
+					 console.log("Configuration saved successfully.")
+					     startCollectors();
+				     }
+				     );
+		    }, function(code) {
+			console.log("There was an error registering the device in Ibisense cloud. Error code : " + code);
+			bootstrapDelayed(retries);
+		    }
+		    ); 
 	    });
     }  
 };
