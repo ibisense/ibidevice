@@ -22,8 +22,6 @@ if (!config) {
     process.exit(-1);
 }
 
-var sensorid = config.sensorid;
-
 //Init Ibisense API
 ibisense.setApiKey(config.apikey);
 
@@ -77,22 +75,6 @@ var measurementNonexistentChannel = function(chName, m) {
 }
 
 //Look up CUID for a measurement
-var loadChannels = function() {
-    ibisense.channels.list(sensorid, 
-        function(channels) {
-             for (var i in channels) {
-                 var ch = channels[i];
-                 log.info("Data from sensor '" + ch.abbreviation() + "' will be stored to channel '" + ch.cuid() + "'");
-                 channelSlugs[ch.abbreviation()] = ch.cuid();
-             }
-        }, function(code) {
-            log.error("Error on loading channel data from Ibisense, status=" + code);
-        }
-    );
-}
-
-loadChannels();
-
 //Create new channel
 var createChannel = function(ts, chName, chValue) {
     var ch = new ibisense.models.Channel({
@@ -102,9 +84,9 @@ var createChannel = function(ts, chName, chValue) {
 	    "abbreviation" : chName
 	});
 
-    log.error("New channel: " + ch.toJsonString());
+    log.info("New channel: " + ch.toJsonString());
     
-    ibisense.channels.add(sensorid,
+    ibisense.channels.add(config.sensorid,
 			  ch,
 			  function(newch, status) {
 			      //New channel created - store CUID and repost data
@@ -323,8 +305,20 @@ var bootstrap = function(retries) {
 	ibisense.setApiKey(config.apikey);
 	ibisense.sensors.get(config.sensorid, 
 			     function(sensor) {
-				 console.log("OK. Sensor was  previously registered.")
-				     startCollectors();
+				 //channels get
+				 console.log("OK. Sensor was  previously registered. Loading channels.")
+				     ibisense.channels.list(config.sensorid, 
+							    function(channels) {
+								for (var i in channels) {
+								    var ch = channels[i];
+								    log.info("Data from sensor '" + ch.abbreviation() + "' will be stored to channel '" + ch.cuid() + "'");
+								    channelSlugs[ch.abbreviation()] = ch.cuid();
+								}
+								startCollectors();
+							    }, function(code) {
+								log.error("Error on loading channel data from Ibisense, status=" + code);
+							    }
+							    );				 
 			     }, function(code) {
 				 console.log("ERROR. Sensor was not registered, but ID exists. Please clear apikey and sensorid in config file and run again!")
 				     bootstrapDelayed(retries);
@@ -352,19 +346,20 @@ var bootstrap = function(retries) {
 		// address;
 		var macAddress = fs.readFileSync("/sys/class/net/eth0/address").toString().trim();
 		var secret;
-		if(!config.secret) {
+		if(config.secret) {
 		    secret = config.secret;
 		} else {
 		    secret = macAddress;
 		}
-
+		log.trace("SECRET=" + secret);
 		ibisense.activation.activateUnregistered({ 
 			'serial': serial, 
-			    'secret', secret},
+			'secret': secret},
 		    function(apikey, suid) {
 			console.log("Device with serial number " + serial + " was registered in the Ibisense cloud: SUID " + suid + " API KEY: " + apikey);
 			config.apikey   = apikey;
 			config.sensorid = suid;
+			ibisense.setApiKey(config.apikey);
 			fs.writeFile(config_file, JSON.stringify(config, null, 4),
 				     function (err) {
 					 if (err) {
@@ -373,7 +368,7 @@ var bootstrap = function(retries) {
 					     bootstrapDelayed(retries);
 					 }
 					 console.log("Configuration saved successfully.")
-					     startCollectors();
+					     bootstrap(retries); //startCollectors();
 				     }
 				     );
 		    }, function(code) {
