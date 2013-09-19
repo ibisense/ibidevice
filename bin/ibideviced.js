@@ -33,8 +33,7 @@ var log = log4js.getLogger("ibideviced");
 log.setLevel(log4js.levels.INFO);
 
 //Debug on / off ?
-log.setLevel(log4js.levels.TRACE)
-
+//log.setLevel(log4js.levels.TRACE)
 
 //Here are the data collecting scripts
 var collectors_path = config.collectors_dir;
@@ -190,39 +189,43 @@ var execCollector = function(path, sink) {
     log.info("Starting " + path);
     //TODO: adddata sink
 
-    var child = spawn(path);
-
-    child.stdout.on('data', function(d) {
-	    //Collect data from STDOUT
-	    stdout_data.push(""+d);
-	    log.trace("STDOUT " + stdout_data);		
-	});    
-
-    child.stderr.on('data', function(d) {
-	    log.error(path + " stderr: " + d);
-	});
-
-    
-    child.on('close', function(code, signal) {
-	    running = false;
-	    if(code === 0) {
-		processCollectorResult(path, stdout_data);
-	    } else { 
-		log.warn(path + " closed with code " + code);
-	    }
-	});
-
-    child.on('close', function(code, signal) {
-	    log.trace(path + " exit: " + code + "/" + signal); running = false;
-	});
-    
-    //TODO: add timeout+kill
-    setTimeout(function() { 
-	    if(running) {
-		child.kill("SIGTERM");
-		log.warn("Sleeping process,killed " + path );
-	    }
-	}, config.process_timeout);
+    try {
+	var child = spawn(path);
+	
+	child.stdout.on('data', function(d) {
+		//Collect data from STDOUT
+		stdout_data.push(""+d);
+		log.trace("STDOUT " + stdout_data);		
+	    });    
+	
+	child.stderr.on('data', function(d) {
+		log.error(path + " stderr: " + d);
+	    });
+	
+	
+	child.on('close', function(code, signal) {
+		running = false;
+		if(code === 0) {
+		    processCollectorResult(path, stdout_data);
+		} else { 
+		    log.warn(path + " closed with code " + code);
+		}
+	    });
+	
+	child.on('close', function(code, signal) {
+		log.trace(path + " exit: " + code + "/" + signal); running = false;
+	    });
+	
+	//TODO: add timeout+kill
+	setTimeout(function() { 
+		if(running) {
+		    child.kill("SIGTERM");
+		    log.warn("Sleeping process,killed " + path );
+		}
+	    }, config.process_timeout);
+    } catch (e) {
+	log.error(e);
+    }
 };
 
 
