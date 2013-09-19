@@ -3,7 +3,6 @@
 PID_FILE=../var/pid
 
 if [ "$1" = "start" ]; then
-  node bootstrap.js
   rc=$?
   if [[ $rc != 0 ]] ; then
     exit $rc
