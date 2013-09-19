@@ -1,0 +1,34 @@
+#!/bin/bash
+
+### BEGIN INIT INFO
+# Provides:             ibideviced
+# Required-Start:       $network
+# Required-Stop:        $network
+# Default-Start:	2 3 4 5
+# Default-Stop: 	0 1 6        
+# Short-Description:    Ibisense demo device daemon 
+### END INIT INFO
+
+
+PID_FILE=/opt/ibisense/var/ibideviced.pid
+RUNPATH=/opt/ibisense/bin
+SERIAL=`grep Serial /proc/cpuinfo|awk '{ print $3; }'`
+cd $RUNPATH
+if [ "$1" = "start" ]; then
+  
+  /usr/bin/nohup /usr/local/bin/node ibideviced.js 1> /dev/null 2> /dev/null &
+  PID=$!
+  echo "$PID" > $PID_FILE
+  /sbin/modprobe w1_gpio
+  /sbin/modprobe w1_therm
+  echo "#################################"
+  echo "Access Ibidevice with ID $SERIAL"
+  echo "at https://rpi.ibisense.net/"
+  echo "#################################"
+elif [ "$1" = "stop" ]; then
+  kill -9 `cat $PID_FILE`
+  rm $PID_FILE
+else
+  echo "Usage: $0 start|stop"
+  exit 1
+fi
