@@ -27,8 +27,17 @@ ibisense.setApiKey(config.apikey);
 
 //Logging
 var log4js = require("log4js");
-log4js.loadAppender('file');
-log4js.addAppender(log4js.appenders.file(config.log_dir+'/ibideviced.log'), 'ibideviced');
+log4js.configure({
+	"appenders" : [ 
+		       { "type" : "file",
+			       "filename" : config.log_dir+'/ibideviced.log' ,
+			       "maxLogSize" : 1048576,
+			       "backups" : 3,
+			       "category" : "ibideviced"
+			       }
+			],
+	    });
+
 var log = log4js.getLogger("ibideviced"); 
 log.setLevel(log4js.levels.INFO);
 
