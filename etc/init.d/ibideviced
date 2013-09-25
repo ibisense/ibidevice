@@ -12,7 +12,11 @@
 
 PID_FILE=/opt/ibisense/var/ibideviced.pid
 RUNPATH=/opt/ibisense/bin
-SERIAL=`grep Serial /proc/cpuinfo|awk '{ print $3; }'`
+#CPU ID is used as secret
+SECRET=`grep Serial /proc/cpuinfo | awk '{ print $3; }'`
+#MAC ADDRESS is used as serial number
+SERIAL=`cat /sys/class/net/eth0/address | tr -d ' '`
+
 cd $RUNPATH
 if [ "$1" = "start" ]; then
   

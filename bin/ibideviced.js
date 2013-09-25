@@ -316,78 +316,86 @@ var bootstrap = function(retries) {
     if (config.apikey && config.sensorid) {
 	ibisense.setApiKey(config.apikey);
 	ibisense.sensors.get(config.sensorid, 
-			     function(sensor) {
-				 //channels get
-				 console.log("OK. Sensor was  previously registered. Loading channels.")
-				     ibisense.channels.list(config.sensorid, 
-							    function(channels) {
-								for (var i in channels) {
-								    var ch = channels[i];
-								    log.info("Data from sensor '" + ch.abbreviation() + "' will be stored to channel '" + ch.cuid() + "'");
-								    channelSlugs[ch.abbreviation()] = ch.cuid();
-								}
-								startCollectors();
-							    }, function(code) {
-								log.error("Error on loading channel data from Ibisense, status=" + code);
-							    }
-							    );				 
-			     }, function(code) {
-				 console.log("ERROR. Sensor was not registered, but ID exists. Please clear apikey and sensorid in config file and run again!")
-				     bootstrapDelayed(retries);
-			     }
-			     );
-    } else {
-	exec(config.get_serial_number_command, function (error, stdout, stderr) {
-		if (error !== null) {
-		    console.log('exec error: ' + error);
-		    process.exit(-1); //fatal
-		}
-		
-		var serial = stdout || "unknown";
-		serial = serial.replace(/^\s*/, '').replace(/\s*$/, '');
-		console.log("Registering device with serial number: " + serial + ".");
-		if (serial === "unknown") {
-		    console.log("Could not retrieve device serial number");
-		    process.exit(-1); //fatal
-		}
-		
-		// By default, use MAC address of the RPi as the registration secret
-		// This is not the most secure method, but better than nothing - now
-		// you can share the cpuid to others with whom you wish to share the
-		// data and they won't be able to fake your data without knowing the MAC
-		// address;
-		var macAddress = fs.readFileSync("/sys/class/net/eth0/address").toString().trim();
-		var secret;
-		if(config.secret) {
-		    secret = config.secret;
-		} else {
-		    secret = macAddress;
-		}
-		log.trace("SECRET=" + secret);
-		ibisense.activation.activateUnregistered({ 
-			'serial': serial, 
-			'secret': secret},
-		    function(apikey, suid) {
-			console.log("Device with serial number " + serial + " was registered in the Ibisense cloud: SUID " + suid + " API KEY: " + apikey);
-			config.apikey   = apikey;
-			config.sensorid = suid;
-			ibisense.setApiKey(config.apikey);
-			fs.writeFile(config_file, JSON.stringify(config, null, 4),
-				     function (err) {
-					 if (err) {
-					     console.log("There has been an error saving your configuration data.");
-					     console.log(err.message);
-					     bootstrapDelayed(retries);
-					 }
-					 console.log("Configuration saved successfully.")
-					     bootstrap(retries); //startCollectors();
-				     }
-				     );
-		    }, function(code) {
-			console.log("There was an error registering the device in Ibisense cloud. Error code : " + code);
+		function(sensor) {
+			console.log("OK. Sensor was  previously registered. Loading channels.")
+			ibisense.channels.list(config.sensorid, 
+				function(channels) {
+					for (var i in channels) {
+						var ch = channels[i];
+						log.info("Data from sensor '" + ch.abbreviation() + "' will be stored to channel '" + ch.cuid() + "'");
+						channelSlugs[ch.abbreviation()] = ch.cuid();
+					}
+					startCollectors();
+				}, function(code) {
+					log.error("Error on loading channel data from Ibisense, status=" + code);
+				}
+			);				 
+		}, function(code) {
+			console.log("ERROR. Sensor was not registered (" + code + ")");
 			bootstrapDelayed(retries);
-		    }
-		    ); 
+		});
+    } else {
+		exec(config.get_mac_address_command, function (error, stdout, stderr) {
+			if (error !== null) {
+		    	console.log('exec error: ' + error);
+		    	process.exit(-1); //fatal
+			}
+		
+			var serial = stdout || "unknown";
+			serial = serial.replace(/^\s*/, '').replace(/\s*$/, '');
+			console.log("Registering device with serial number: " + serial + ".");
+			if (serial === "unknown") {
+		    	console.log("Could not retrieve device serial number");
+		    	process.exit(-1); //fatal
+			}
+		
+			// By default, use MAC address of the RPi as the registration secret
+			// This is not the most secure method, but better than nothing - now
+			// you can share the cpuid to others with whom you wish to share the
+			// data and they won't be able to fake your data without knowing the MAC
+			// address;
+
+			exec(config.get_cpu_number_command, function (error, stdout, stderr) {
+		
+				var secret;
+
+				if(config.secret) {
+			    	secret = config.secret;
+				} else {
+			    	secret = stdout || "";
+					secret = secret.replace(/^\s*/, '').replace(/\s*$/, '');
+					console.log(": " + secret + ".");
+					if (secret === "") {
+		    			console.log("Using an empty secret");
+					}
+				}
+
+				log.trace("SECRET=" + secret);
+				ibisense.activation.activateUnregistered({ 
+					'serial': serial, 
+					'secret': secret},
+		    		function(apikey, suid) {
+						console.log("Device with serial number " + serial + " was registered in the Ibisense cloud: SUID " + suid + " API KEY: " + apikey);
+						config.apikey   = apikey;
+						config.sensorid = suid;
+						ibisense.setApiKey(config.apikey);
+						fs.writeFile(config_file, JSON.stringify(config, null, 4),
+					    	 function (err) {
+								 if (err) {
+						     		console.log("There has been an error saving your configuration data.");
+						     		console.log(err.message);
+						     		bootstrapDelayed(retries);
+						 		}
+						 		console.log("Configuration saved successfully.")
+					   		  	bootstrap(retries); //startCollectors();
+				     		}
+				     	);
+		    		}, function(code) {
+						console.log("There was an error registering the device in Ibisense cloud. Error code : " + code);
+						bootstrapDelayed(retries);
+		    		}
+		    	);
+		    });	 
 	    });
     }  
 };
