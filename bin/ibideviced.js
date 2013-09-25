@@ -364,7 +364,7 @@ var bootstrap = function(retries) {
 				} else {
 			    	secret = stdout || "";
 					secret = secret.replace(/^\s*/, '').replace(/\s*$/, '');
-					console.log(": " + secret + ".");
+					
 					if (secret === "") {
 		    			console.log("Using an empty secret");
 					}

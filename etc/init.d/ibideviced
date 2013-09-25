@@ -16,8 +16,8 @@ RUNPATH=/opt/ibisense/bin
 SECRET=`grep Serial /proc/cpuinfo | awk '{ print $3; }'`
 #MAC ADDRESS is used as serial number
 SERIAL=`cat /sys/class/net/eth0/address | tr -d ' '`
-
 cd $RUNPATH
+
 if [ "$1" = "start" ]; then
   
   /usr/bin/nohup /usr/local/bin/node ibideviced.js 1> /dev/null 2> /dev/null &
