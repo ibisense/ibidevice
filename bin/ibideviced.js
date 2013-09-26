@@ -50,8 +50,7 @@ if(collectors_path[collectors_path.length-1] !== '/') {
     collectors_path = collectors_path + "/";
 }
 
-//TODO: add data sinks
-
+//Checks if the collector file looks runnable. TBD: check file permissions for +x
 var collector_runnable = function(name) {
     //TODO: add check for executable and non-directory
     //Do not run backup files
@@ -62,6 +61,7 @@ var collector_runnable = function(name) {
     }
 }
 
+//Run all the collectors in the directory
 var runCollectors = function() {
     try { 
 	var collectors = fs.readdirSync(collectors_path);
@@ -77,10 +77,6 @@ var runCollectors = function() {
 	}
     }    
 };
-
-var measurementNonexistentChannel = function(chName, m) {
-    //Send new channel request
-}
 
 //Look up CUID for a measurement
 //Create new channel
@@ -112,22 +108,25 @@ var createChannel = function(ts, chName, chValue) {
 }
 
 
-//Send measurement to Ibisense
+//A new measurement received event
 var measurementReceived = function(ts,chName,chValue)  {
     var m = { 'abs_time' : ts,
 	      'value' : chValue };
      
+    //Do we already know the Ibisense Channel ?
     if(channelSlugs[chName]) {
 	//If the CUID is known, send the data to Ibisense
 	ibiSendMeasurement(channelSlugs[chName], m);
     } else { 
-	//If CUID is unknown, poll for it. If not known, create channel
+	//If CUID (Channel UID) is unknown, poll for it. If not known, create channel
 	//measurementUnknownCUID(chname, m);
 	log.warn("Unknown CUID for " + chName);
 	createChannel(ts, chName, chValue);
     }
 }
 
+
+// Processes results from collectors
 
 //Process data formats like:
 // T,20
@@ -139,10 +138,9 @@ var measurementReceived = function(ts,chName,chValue)  {
 // V1,12.00V
 // RH,34 %
 
-// Use * to denote measurement timestamp
+// Use * to denote measurement timestamp if it is not current:
 // *02:03:00,T,20
 // *02:03:01,T,20
-
 
 var processCollectorResult = function(path,data) {
     //var lines = data.split("\n");
@@ -192,12 +190,13 @@ var processCollectorResult = function(path,data) {
     }
 }
 
+//Execute collector and pipe results
 var execCollector = function(path, sink) {
     var running = true;
     var stdout_data=[];
-    log.info("Starting " + path);
-    //TODO: adddata sink
-
+    log.trace("Starting " + path);
+    
+    //try-catch block catches non-executable files and errors
     try {
 	var child = spawn(path);
 	
@@ -225,7 +224,7 @@ var execCollector = function(path, sink) {
 		log.trace(path + " exit: " + code + "/" + signal); running = false;
 	    });
 	
-	//TODO: add timeout+kill
+	//TODO: add timeout+kill. This does not work well with node.js for some reason!
 	setTimeout(function() { 
 		if(running) {
 		    child.kill("SIGTERM");
@@ -241,7 +240,7 @@ var execCollector = function(path, sink) {
 
 //TODO: add data buffering if net connetion is down
 
-// Message handling routines
+// Message handling routines. slug is the same as CUID = channel UID
 var ibiSendMeasurement = function(slug, m) {
     var cuid = '';
     
