@@ -17,5 +17,9 @@ rm -f $TARGET/bin/install-ibidevice.sh
 cp $PWD/etc/init.d/ibideviced /etc/init.d
 update-rc.d ibideviced defaults
 
+#Install node modules
+mkdir -p $TARGET/bin/node_modules
+npm install --prefix $TARGET/bin jsdom xmlhttprequest jquery jsdom log4js
+
 
  
