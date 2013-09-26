@@ -1,7 +1,7 @@
 {
     "apikey": "",
-    "log_dir": "/opt/ibisense/var/log/",
-    "collectors_dir": "/opt/ibisense/collectors",
+    "log_dir": "/opt/ibidevice/var/log/",
+    "collectors_dir": "/opt/ibidevice/collectors",
     "process_timeout": 5000,
     "process_period": 15000,	
     "secret" : "",

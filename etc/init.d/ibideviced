@@ -10,8 +10,8 @@
 ### END INIT INFO
 
 
-PID_FILE=/opt/ibisense/var/ibideviced.pid
-RUNPATH=/opt/ibisense/bin
+PID_FILE=/opt/ibidevice/var/ibideviced.pid
+RUNPATH=/opt/ibidevice/bin
 #CPU ID is used as secret
 cd $RUNPATH
 

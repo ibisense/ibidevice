@@ -3,11 +3,11 @@
 #Ibideviced install script
 
 PWD="$( cd "$(dirname $0)/.." ; pwd )"
-TARGET=/opt/ibisense
+TARGET=/opt/ibidevice
 
 #Create directories
-mkdir /opt/ibisense/bin
-chown -R pi /opt/ibisense
+mkdir -p /opt/ibidevice/bin
+chown -R pi /opt/ibidevice
 
 #Copy files
 cp -r $PWD/* $TARGET
