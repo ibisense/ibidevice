@@ -12,9 +12,13 @@
 
 PID_FILE=/opt/ibisense/var/ibideviced.pid
 RUNPATH=/opt/ibisense/bin
+#CPU ID is used as secret
 cd $RUNPATH
+
 if [ "$1" = "start" ]; then
-  SERIAL=`grep Serial /proc/cpuinfo|awk '{ print $3; }'`
+  SECRET=`grep Serial /proc/cpuinfo | awk '{ print $3; }'`
+  #MAC ADDRESS is used as serial number
+  SERIAL=`cat /sys/class/net/eth0/address | tr -d ' '`
   /usr/bin/nohup /usr/local/bin/node ibideviced.js 1> /dev/null 2> /dev/null &
   PID=$!
   echo "$PID" > $PID_FILE
