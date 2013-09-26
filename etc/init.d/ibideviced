@@ -12,10 +12,9 @@
 
 PID_FILE=/opt/ibisense/var/ibideviced.pid
 RUNPATH=/opt/ibisense/bin
-SERIAL=`grep Serial /proc/cpuinfo|awk '{ print $3; }'`
 cd $RUNPATH
 if [ "$1" = "start" ]; then
-  
+  SERIAL=`grep Serial /proc/cpuinfo|awk '{ print $3; }'`
   /usr/bin/nohup /usr/local/bin/node ibideviced.js 1> /dev/null 2> /dev/null &
   PID=$!
   echo "$PID" > $PID_FILE
@@ -26,8 +25,10 @@ if [ "$1" = "start" ]; then
   echo "at https://rpi.ibisense.net/"
   echo "#################################"
 elif [ "$1" = "stop" ]; then
-  kill -9 `cat $PID_FILE`
-  rm $PID_FILE
+    if [ -e "$PID_FILE" ]; then
+	kill -9 `cat $PID_FILE`
+	rm $PID_FILE
+   fi
 else
   echo "Usage: $0 start|stop"
   exit 1
