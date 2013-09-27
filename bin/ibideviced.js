@@ -1,6 +1,6 @@
 //
-// Ibisense device data daemon
-// Ibisense (c) 2013-
+// Copyright (c) 2013, Ibisense ltd.
+// see file LICENSE for licensing (BSD)
 //
 "use strict";
 
