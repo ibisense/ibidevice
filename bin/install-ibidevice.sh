@@ -13,13 +13,14 @@ chown -R pi /opt/ibidevice
 cp -r $PWD/* $TARGET
 rm -f $TARGET/bin/install-ibidevice.sh
 
+#Install node modules
+mkdir -p $TARGET/bin/node_modules
+npm install --prefix $TARGET/bin jsdom xmlhttprequest jquery jsdom log4js
+
 #Install the startup script
 cp $PWD/etc/init.d/ibideviced /etc/init.d
 update-rc.d ibideviced defaults
 
-#Install node modules
-mkdir -p $TARGET/bin/node_modules
-npm install --prefix $TARGET/bin jsdom xmlhttprequest jquery jsdom log4js
 
 
  
