@@ -213,15 +213,12 @@ var execCollector = function(path, sink) {
 	
 	child.on('close', function(code, signal) {
 		running = false;
+		log.trace(path + " exit: " + code + "/" + signal); running = false;
 		if(code === 0) {
 		    processCollectorResult(path, stdout_data);
 		} else { 
 		    log.warn(path + " closed with code " + code);
 		}
-	    });
-	
-	child.on('close', function(code, signal) {
-		log.trace(path + " exit: " + code + "/" + signal); running = false;
 	    });
 	
 	//TODO: add timeout+kill. This does not work well with node.js for some reason!
