@@ -206,7 +206,7 @@ var execCollector = function(path, sink) {
         var child = spawn(path);
 
         child.stdout.on('data', function(data) {
-            (d + '').split(/\n/).forEach(function(element) {
+            (data + '').split(/\n/).forEach(function(element) {
                 stdout_data.push(element);
             });
             //Collect data from STDOUT
