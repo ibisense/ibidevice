@@ -148,7 +148,7 @@ var processCollectorResult = function(path,data) {
     for (var lineno in lines) {
 	var ts = null;
 	var line = lines[lineno];
-	var lineItems = line.split(",");
+	var lineItems = line.split(/\,/);
 	var ts = new Date();
         log.trace("Received new measurement: " + line)
 	for(var i in lineItems) {
