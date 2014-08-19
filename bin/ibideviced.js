@@ -142,52 +142,54 @@ var measurementReceived = function(ts,chName,chValue)  {
 // *02:03:00,T,20
 // *02:03:01,T,20
 
-var processCollectorResult = function(path,data) {
-    //var lines = data.split("\n");
-    var lines = data;
-    for (var lineno in lines) {
-	var ts = null;
-	var line = lines[lineno];
-	var lineItems = line.split(/\,/);
-	var ts = new Date();
-        log.trace("Received new measurement: " + line)
-	for(var i in lineItems) {
+//Currently supported formats:
+//No timestamp:
+//  ChannelName ChannelValue
+//  ChannelName,ChannelValue
+//With timestamp:
+//  Timestamp,ChannelName,ChannelValue
+//  Timestamp ChannelName ChannelValue
 
-	    //Is the first one a timestamp ?
-	    if (i===0 && lineItems[i].match(/^\*/)) {
-		try {
-		    ts = new Date(lineItems[0].substring(1));
-		} catch (e) {
-		    //Error in timestamp
-		log.error(path + " can't parse timestamp " + lineItems[0]);
-		ts=null;
-		}		
-	    } else { 
-		//This is a measurement, parse it
-		var m, chName, chValue;
-		var ll = lineItems[i];
-
-		if(m=ll.match(/^([^,]+?)\s+([+-]?.*)/)) {
-		    if(m.length >=3) {
-			var chName = m[1];
-			var chValue = parseFloat(m[2]);
-                        log.trace("line: " + ll + ", chName: " + chName + ", chValue: " + chValue);
-                        if (chName && !isNaN(chValue)) {
-  	                    measurementReceived(ts,chName,chValue);
-                        }
-		    }
-		    else {
-			log.error(path + " value " + lineItems[i] + " does not contain channel name and unit");
-		    }
+var processCollectorResult = function(path,lines) {
+	if (typeof lines  === 'undefined' || !(a instanceof Array)) return;
+	lines.forEach(function(line) {
+		//Try to split the line by comma
+		var lineItems = line.split(/\s+|\,/);
+		var ts = new Date(), chName, chValue;
+		var skip = false;
+		log.trace("Received new measurement: " + line);
+		if (lineItems.length == 2) {
+			//we have exactly 2 items after splitting,
+			//this indicates that there is only a channel name and value
+			try {
+				chName  = lineItems[0];
+				chValue = parseFloat(lineItems[1]);
+				if (isNaN(chValue)) throw new Error("Unparsable floating point value");
+			} catch (e) {
+				//Error in timestamp
+				log.error(path + " Could not parse value " + e);
+				skip = true;
+			}
+		} else if (lineItems.length == 3) {
+			//we have exactly 3 items after splitting,
+			//this indicates that there is a timestamp, channel name and value
+			try {
+				ts      = new Date(lineItems[0]); 
+				chName  = lineItems[1];
+				chValue = parseFloat(lineItems[2]);
+				if (isNaN(chValue)) throw new Error("Unparsable floating point value");
+			} catch (e) {
+				//Error in timestamp
+				log.error(path + " Could not parse timestamp value " + ts);
+				skip = true;
+			}
 		} else {
-		    log.error("Unable to parse line " + line);
+			//well we have got something weird, so skip it
+			log.error("Got unparsable string, skipping. Faulty string is " + line);
+			skip = true;
 		}
-
-	    }
-		    
-	}
-
-    }
+		if (!skip) measurementReceived(ts,chName,chValue);
+	});
 }
 
 //Execute collector and pipe results
