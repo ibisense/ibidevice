@@ -154,7 +154,7 @@ var processCollectorResult = function(path,lines) {
 	if (typeof lines  === 'undefined' || !(lines instanceof Array)) return;
 	lines.forEach(function(line) {
 		//Try to split the line by comma
-		var lineItems = line.split(/\s+|\,/);
+		var lineItems = line.replace(/^\s+|\s+$/g,'').split(/\s+|\,/);
 		var ts = new Date(), chName, chValue;
 		var skip = false;
 		log.trace("Received new measurement: " + line);
@@ -174,6 +174,7 @@ var processCollectorResult = function(path,lines) {
 			//we have exactly 3 items after splitting,
 			//this indicates that there is a timestamp, channel name and value
 			try {
+
 				ts      = new Date(lineItems[0]); 
 				chName  = lineItems[1];
 				chValue = parseFloat(lineItems[2]);
