@@ -151,7 +151,7 @@ var measurementReceived = function(ts,chName,chValue)  {
 //  Timestamp ChannelName ChannelValue
 
 var processCollectorResult = function(path,lines) {
-	if (typeof lines  === 'undefined' || !(a instanceof Array)) return;
+	if (typeof lines  === 'undefined' || !(lines instanceof Array)) return;
 	lines.forEach(function(line) {
 		//Try to split the line by comma
 		var lineItems = line.split(/\s+|\,/);
