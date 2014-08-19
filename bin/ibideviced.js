@@ -110,19 +110,21 @@ var createChannel = function(ts, chName, chValue) {
 
 //A new measurement received event
 var measurementReceived = function(ts,chName,chValue)  {
-    var m = { 'abs_time' : ts,
-	      'value' : chValue };
+	var m = { 
+		'abs_time' : ts,
+		'value' : chValue 
+	};
      
-    //Do we already know the Ibisense Channel ?
-    if(channelSlugs[chName]) {
-	//If the CUID is known, send the data to Ibisense
-	ibiSendMeasurement(channelSlugs[chName], m);
-    } else { 
-	//If CUID (Channel UID) is unknown, poll for it. If not known, create channel
-	//measurementUnknownCUID(chname, m);
-	log.warn("Unknown CUID for " + chName);
-	createChannel(ts, chName, chValue);
-    }
+	//Do we already know the Ibisense Channel ?
+	if(channelSlugs[chName]) {
+		//If the CUID is known, send the data to Ibisense
+		ibiSendMeasurement(channelSlugs[chName], m);
+	} else { 
+		//If CUID (Channel UID) is unknown, poll for it. If not known, create channel
+		//measurementUnknownCUID(chname, m);
+		log.info("Unknown CUID for " + chName);
+		createChannel(ts, chName, chValue);
+	}
 }
 
 
@@ -150,8 +152,9 @@ var measurementReceived = function(ts,chName,chValue)  {
 //  Timestamp,ChannelName,ChannelValue
 //  Timestamp ChannelName ChannelValue
 
-var processCollectorResult = function(path,lines) {
-	if (typeof lines  === 'undefined' || !(lines instanceof Array)) return;
+var processCollectorResult = function(path,data) {	
+	if (typeof data  === 'undefined' || typeof data !== 'string') return;
+	var lines = data.split(/\n/);
 	lines.forEach(function(line) {
 		//Try to split the line by comma
 		var lineItems = line.replace(/^\s+|\s+$/g,'').split(/\s+|\,/);
