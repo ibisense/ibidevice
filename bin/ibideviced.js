@@ -79,6 +79,7 @@ var runCollectors = function() {
 
 //Look up CUID for a measurement
 //Create new channel
+var pending_add_ch = {};
 var createChannel = function(ts, chName, chValue) {
     var ch = new ibisense.models.Channel({
         "name": "RPi sensor " + chName,
@@ -86,7 +87,10 @@ var createChannel = function(ts, chName, chValue) {
         "unit": "",
         "abbreviation": chName
     });
-
+    
+    if (pending_add_ch[chName]) return;
+    pending_add_ch[chName] = true;
+    
     log.warn("New channel: " + ch.toJsonString());
     ibisense.channels.add(config.sensorid,
         ch,
@@ -98,6 +102,7 @@ var createChannel = function(ts, chName, chValue) {
         },
         function() {
             //Error
+            pending_add_ch[chName] = false;
             log.error("Can't create new channel " + chName);
         });;
 
